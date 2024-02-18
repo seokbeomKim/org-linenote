@@ -1,0 +1,29 @@
+* org-linenote
+
+A Emacs note package motivated by Visual Studio Code's linenote (https://marketplace.visualstudio.com/items?itemName=tkrkt.linenote).
+
+* Installation
+
+#+BEGIN_SRC elisp
+(require 'org-linenote)
+#+END_SRC
+
+* What is this package?
+
+Sometimes, we need 'line-by-line' notes to analyze the code. I made this package to study Linux kernel. This package manages the notes by using relative path and filename. Every notes are stored in =.linenote= directory in the project root directory.
+
+* Usage
+
+[[https://github.com/seokbeomKim/org-linenote/blob/image/example.gif]]
+
+The package provides interactive functions as following:
+
+- ~org-linenote-mode~: to enable linenote's highlight on the current buffer.
+- ~org-linenote-browse~: to browse notes for the current buffer.
+- ~org-linenote-add-annotate~: to add a note for the current line.
+- ~org-linenote-edit-annotate~: alias to ~org-linenote-add-annotate~. Edit the note corresponding to the current line.
+- ~org-linenote-remove-annotate~: to remove the note corresponding the current line.
+
+* Feedback
+
+If you have any feedback, suggestions for improvements or advice, please feel free to get in touch.
