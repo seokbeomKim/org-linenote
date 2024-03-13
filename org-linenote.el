@@ -76,6 +76,7 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
     (if (null undo)
         (let ((ov (make-overlay (region-beginning) (- (region-end) 1))))
           (overlay-put ov 'face org-linenote--highlight-style)))
+    (forward-line -1)
     (deactivate-mark)
     (goto-char (point-min))
     (forward-line min-line)))
