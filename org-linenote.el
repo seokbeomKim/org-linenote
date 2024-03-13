@@ -108,7 +108,7 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
   (if-let ((project-root (projectile-project-root)))
       (let* ((note-dir (org-linenote--get-note-rootdir))
              (note-path (expand-file-name
-                         (or "" (file-name-directory (org-linenote--get-relpath)))
+                         (or (file-name-directory (org-linenote--get-relpath)) "")
                          note-dir)))
         (make-directory note-dir t)
         (make-directory note-path t)
@@ -121,7 +121,7 @@ If not available, then return empty string."
   (if-let ((project-root (projectile-project-root)))
       (let ((note-dir (expand-file-name ".linenote" project-root)))
         (unless (file-exists-p note-dir)
-          (mkdir note-dir))
+          (make-directory note-dir t))
         note-dir)
     ""))
 
