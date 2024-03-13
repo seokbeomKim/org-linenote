@@ -40,8 +40,7 @@
 (require 'vertico)
 
 (defvar org-linenote--highlight-style '(:background "medium turquoise" :underline nil)
-  "Highlight style for the note. Default is `(:background \"medium
-turquoise\" :underline nil)'.")
+  "Highlight style for the note.")
 
 (defvar org-linenote--in-browse nil
   "A flag of browse function.")
@@ -194,10 +193,17 @@ If not available, then return empty string."
   (interactive)
   (let ((note-path (org-linenote--check-already-exist)))
     (if (not (file-exists-p note-path))
-        (message "No notes to remove from here")
-      (when (yes-or-no-p (format "Remove %S?" note-path))
-        (delete-file note-path)
-        (org-linenote--highlight (file-name-base note-path) t)))))
+        (error "No notes to remove from here")
+      (condition-case _
+          (progn
+            (pop-to-buffer (find-file-noselect note-path) 'reusable-frames)
+            (let ((do-remove (yes-or-no-p (format "Remove %S?" note-path))))
+              (delete-window)
+              (when do-remove
+                (message note-path)
+                (delete-file note-path)
+                (org-linenote--highlight (file-name-base note-path) t))))
+        (quit (delete-window))))))
 
 (defun org-linenote--directory-files ()
   "Do `directory-files' to find notes (except for files with names ending with ~)."
