@@ -6,7 +6,7 @@
 ;; Maintainer: Jason Kim <sukbeom.kim@gmail.com>
 ;; Created: February 18, 2024
 ;; Modified: February 18, 2024
-;; Version: 0.1.0
+;; Version: 0.1.1
 ;; Keywords: tools, note, org
 ;; Homepage: https://github.com/seokbeomKim/org-linenote
 ;; Package-Requires: ((emacs "29.1") (projectile "2.8.0") (vertico "1.7"))
@@ -38,6 +38,11 @@
 
 (require 'projectile)
 (require 'vertico)
+
+(defvar org-linenote--default-extension ".md"
+  "Configure the default note extension.
+If you set this to `.md', then it supports compability with
+vscode's linenote.")
 
 (defvar org-linenote--highlight-style '(:background "medium turquoise" :underline nil)
   "Highlight style for the note.")
@@ -170,7 +175,7 @@ If not available, then return empty string."
   (or (org-linenote--check-line-range (line-number-at-pos))
       (expand-file-name (concat (org-linenote--get-relpath)
                                 (org-linenote-get-linenum-string)
-                                ".org")
+                                org-linenote--default-extension)
                         (org-linenote--get-note-rootdir))))
 
 (defun org-linenote-add-annotate ()
