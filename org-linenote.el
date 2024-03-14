@@ -39,7 +39,7 @@
 (require 'projectile)
 (require 'vertico)
 
-(defvar org-linenote--default-extension ".md"
+(defvar org-linenote--default-extension ".org"
   "Configure the default note extension.
 If you set this to `.md', then it supports compability with
 vscode's linenote.")

@@ -1,6 +1,22 @@
 * org-linenote
 
-A Emacs note package motivated by Visual Studio Code's linenote (https://marketplace.visualstudio.com/items?itemName=tkrkt.linenote).
+An Emacs note package inspired by Visual Studio Code's Linenote (https://marketplace.visualstudio.com/items?itemName=tkrkt.linenote).
+
+** What is this package?
+
+=org-linenote= has several key features:
+
+- Creating a note per line
+- Saving notes by preserving the directory structure
+- Compatibility with VS Code Linenote extension
+- No org properties required
+- Based on git repository
+
+=org-linenote= is useful when you need a detailed note on a specific line of code or document, unlike other note-taking packages that create a note per file. Additionally, the package does not require Org properties but only utilizes the line number from the filename.
+
+Also, the package provides compatibility with the VS Code Linenote extension. If you manage the notes within markdown (.md) format, the same notes can be utilized in Visual Studio Code as well.
+
+These features make =org-linenote= useful when you need 'line-by-line' notes to analyze the code and share notes with others. I use this package for analyzing Linux kernel and sharing insights with people (most of them are vscode users).
 
 * Installation
 
@@ -8,21 +24,41 @@ A Emacs note package motivated by Visual Studio Code's linenote (https://marketp
 (require 'org-linenote)
 #+END_SRC
 
-* What is this package?
-
-Sometimes, we need 'line-by-line' notes to analyze the code. I made this package to study Linux kernel. This package manages the notes by using relative path and filename. Every notes are stored in =.linenote= directory in the project root directory.
-
 * Usage
 
 [[https://github.com/seokbeomKim/org-linenote/blob/image/example.gif]]
 
-The package provides interactive functions as following:
+The package provides interactive functions as follows:
 
-- ~org-linenote-mode~: to enable linenote's highlight on the current buffer.
+- ~org-linenote-mode~: to enable Linenote's highlight on the current buffer.
 - ~org-linenote-browse~: to browse notes for the current buffer.
 - ~org-linenote-add-annotate~: to add a note for the current line.
-- ~org-linenote-edit-annotate~: alias to ~org-linenote-add-annotate~. Edit the note corresponding to the current line.
-- ~org-linenote-remove-annotate~: to remove the note corresponding the current line.
+- ~org-linenote-edit-annotate~: an alias for ~org-linenote-add-annotate~. Edit the note corresponding to the current line.
+- ~org-linenote-remove-annotate~: to remove the note corresponding to the current line.
+
+** A single-line and multi-line notes
+
+This package manages the notes by using relative paths and line numbers. Every note is stored in the =.linenote= directory in the project root directory with the relative path and the line number.
+
+For example, when we add a note on ~init/main.c:131~, then it creates the note in ~.linenote/init/main.c#L131.org~ (or ~.md~ file based on the configuration). You can also create a multi-line note by selecting multiple lines in the code or document. In this case, the note is created in ~.linenote/init/main.c#L131-133.org~, for example.
+
+** Integrating org-linenote and VS Code's Linenote
+
+=org-linenote= utilizes the directory ~$PROJECT/.linenote~, but VS Code Linenote uses ~$PROJECT/.vscode/linenote~.
+
+Notes must be in markdown format to be displayed correctly in VS Code. =org-linenote= can deal with both org and markdown format. But, vscode-linenote can only deal with markdown format. So, I recommend to use markdown format for compatibility with vscode-linenote if you use vscode as well.
+
+If you want to create notes with a different extension, you can set ~org-linenote--default-extension~ to other values. This only affects the extension of new notes to create and does not filter existing notes.
+
+#+begin_src emacs-lisp
+(setq org-linenote--default-extension ".md")
+#+end_src
+
+Create a symbolic link (org-linenote directory to VS Code Linenote directory)
+
+#+BEGIN_SRC bash
+$ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
+#+END_SRC
 
 * Feedback
 
