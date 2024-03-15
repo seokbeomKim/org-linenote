@@ -10,11 +10,11 @@ An Emacs note package inspired by Visual Studio Code's Linenote (https://marketp
 - Saving notes by preserving the directory structure
 - Compatibility with VS Code Linenote extension
 - No org properties required
-- Based on git repository
+- Based on a Git repository
 
 =org-linenote= is useful when you need a detailed note on a specific line of code or document, unlike other note-taking packages that create a note per file. Additionally, the package does not require Org properties but only utilizes the line number from the filename.
 
-Also, the package provides compatibility with the VS Code Linenote extension. If you manage the notes within markdown (.md) format, the same notes can be utilized in Visual Studio Code as well.
+Also, the package provides compatibility with the VS Code Linenote extension. If you manage the notes within the markdown (.md) format, the same notes can also be utilized in Visual Studio Code.
 
 These features make =org-linenote= useful when you need 'line-by-line' notes to analyze the code and share notes with others. I use this package for analyzing Linux kernel and sharing insights with people (most of them are vscode users).
 
@@ -36,7 +36,7 @@ The package provides interactive functions as follows:
 - ~org-linenote-edit-annotate~: an alias for ~org-linenote-add-annotate~. Edit the note corresponding to the current line.
 - ~org-linenote-remove-annotate~: to remove the note corresponding to the current line.
 
-** A single-line and multi-line notes
+** Single-line and multi-line notes
 
 This package manages the notes by using relative paths and line numbers. Every note is stored in the =.linenote= directory in the project root directory with the relative path and the line number.
 
@@ -46,7 +46,7 @@ For example, when we add a note on ~init/main.c:131~, then it creates the note i
 
 =org-linenote= utilizes the directory ~$PROJECT/.linenote~, but VS Code Linenote uses ~$PROJECT/.vscode/linenote~.
 
-Notes must be in markdown format to be displayed correctly in VS Code. =org-linenote= can deal with both org and markdown format. But, vscode-linenote can only deal with markdown format. So, I recommend to use markdown format for compatibility with vscode-linenote if you use vscode as well.
+Notes must be in markdown format to be displayed correctly in VS Code. =org-linenote= can deal with both org and markdown format. But, VS Code Linenote can only deal with markdown format. So, I recommend using the markdown format for compatibility with vscode-linenote if you use vscode as well.
 
 If you want to create notes with a different extension, you can set ~org-linenote--default-extension~ to other values. This only affects the extension of new notes to create and does not filter existing notes.
 
@@ -62,4 +62,4 @@ $ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
 
 * Feedback
 
-If you have any feedback, suggestions for improvements or advice, please feel free to get in touch.
+If you have any feedback, suggestions for improvements, or advice, please feel free to get in touch.
