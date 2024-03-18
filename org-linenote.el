@@ -269,14 +269,16 @@ If not available, then return empty string."
   :global nil
   :lighter " Org-Linenote"
 
+  (unless (projectile-project-root)
+    (error "The working directory is not a git repo"))
+
   (if org-linenote-mode
       (progn
         (add-hook 'minibuffer-setup-hook #'org-linenote--minibuf-setup-hook)
         (add-hook 'minibuffer-exit-hook #'org-linenote--minibuf-exit-hook)
         (org-linenote-mark-notes))
     (progn
-      (mapc (lambda (ov)
-              (delete-overlay ov)) org-linenote--overlays)
+      (mapc #'delete-overlay org-linenote--overlays)
       (setq org-linenote--overlays nil))))
 
 (defun org-linenote-browse ()
