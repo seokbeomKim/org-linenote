@@ -6,7 +6,7 @@
 ;; Maintainer: Jason Kim <sukbeom.kim@gmail.com>
 ;; Created: February 18, 2024
 ;; Modified: February 18, 2024
-;; Version: 0.1.1
+;; Version: 0.1.2
 ;; Keywords: tools, note, org
 ;; Homepage: https://github.com/seokbeomKim/org-linenote
 ;; Package-Requires: ((emacs "29.1") (projectile "2.8.0") (vertico "1.7"))
@@ -38,6 +38,7 @@
 
 (require 'projectile)
 (require 'vertico)
+(require 'subr-x)
 
 (defvar org-linenote--default-extension ".org"
   "Configure the default note extension.
@@ -52,6 +53,12 @@ vscode's linenote.")
 
 (defvar org-linenote--prev-window -1
   "Temporary value to store previously focused window.")
+
+(defvar-local org-linenote--overlays nil
+  "Overlays in a local buffer.")
+
+(defvar-local org-linenote-mode nil
+  "Org-linenote mode flag.")
 
 (defun org-linenote--lines-to-highlight (filename)
   "Get beginning/end line number to highlight from `FILENAME'."
@@ -73,13 +80,15 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
          (diff-line (- max-line min-line)))
     (goto-char (point-min))
     (forward-line min-line)
-    (goto-char (line-beginning-position))
+    (beginning-of-line)
     (set-mark (line-beginning-position))
     (forward-line diff-line)
-    (remove-overlays (region-beginning) (region-end))
+    (org-linenote--remove-overlays-at (region-beginning))
     (if (null undo)
         (let ((ov (make-overlay (region-beginning) (- (region-end) 1))))
-          (overlay-put ov 'face org-linenote--highlight-style)))
+          (overlay-put ov 'face org-linenote--highlight-style)
+          (if (overlay-buffer ov)
+              (push ov org-linenote--overlays))))
     (forward-line -1)
     (deactivate-mark)
     (goto-char (point-min))
@@ -97,11 +106,6 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
     (goto-char (point-min))
     (forward-line (1- current-line))))
 
-(defun org-linenote-mode ()
-  "Org-linenote main function."
-  (interactive)
-  (org-linenote-mark-notes))
-
 (defun org-linenote--get-relpath ()
   "Get the relative path of the current file."
   (if (projectile-project-root)
@@ -110,6 +114,10 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
 
 (defun org-linenote--validate ()
   "Validate the current working directory."
+
+  (unless org-linenote-mode
+    (error "Please enable org-linenote mode"))
+
   (if-let ((project-root (projectile-project-root)))
       (let* ((note-dir (org-linenote--get-note-rootdir))
              (note-path (expand-file-name
@@ -130,7 +138,7 @@ If not available, then return empty string."
         note-dir)
     ""))
 
-(defalias 'org-linenote-edit-annotate 'org-linenote-add-annotate
+(defalias 'org-linenote-edit-annotate #'org-linenote-add-annotate
   "This is an alias to `org-linenote-add-annotate'.")
 
 (defun org-linenote-get-linenum-string ()
@@ -161,7 +169,7 @@ If not available, then return empty string."
       (let* ((range (org-linenote--get-line-range-by-fname file))
              (min (car range))
              (max (cdr range)))
-        (if (and (not (null max))
+        (if (and max
                  (and (<= min line)
                       (<= line max)))
             (setq res file)
@@ -196,6 +204,7 @@ If not available, then return empty string."
 (defun org-linenote-remove-annotate ()
   "Remove the annotation on the line."
   (interactive)
+  (org-linenote--validate)
   (let ((note-path (org-linenote--check-already-exist)))
     (if (not (file-exists-p note-path))
         (error "No notes to remove from here")
@@ -205,7 +214,6 @@ If not available, then return empty string."
             (let ((do-remove (yes-or-no-p (format "Remove %S?" note-path))))
               (delete-window)
               (when do-remove
-                (message note-path)
                 (delete-file note-path)
                 (org-linenote--highlight (file-name-base note-path) t))))
         (quit (delete-window))))))
@@ -232,6 +240,18 @@ If not available, then return empty string."
         (if (active-minibuffer-window)
             (select-window (active-minibuffer-window)))))))
 
+(defun org-linenote--overlayed-by (ov)
+  "Check `OV' instance is actually overlayed by this package."
+  (member ov org-linenote--overlays))
+
+(defun org-linenote--remove-overlays-at (pos)
+  "Remove overlays at `POS' by checking the `org-linenote--overlays'."
+  (mapc (lambda (ov)
+          (if (org-linenote--overlayed-by ov)
+              (progn
+                (delete-overlay ov)
+                (delete ov org-linenote--overlays)))) (overlays-at pos)))
+
 (defun org-linenote--minibuf-setup-hook ()
   "A function added to minibuf-setup-hook used for org-linenote."
   (add-hook 'post-command-hook #'org-linenote--post-command-hook))
@@ -240,19 +260,31 @@ If not available, then return empty string."
   "A function added to minibuf-exit-hook used for org-linenote."
   (setq org-linenote--in-browse nil)
   (setq org-linenote--prev-window -1)
-  (remove-overlays (line-beginning-position) (line-end-position))
+  (org-linenote--remove-overlays-at (line-beginning-position))
   (remove-hook 'post-command-hook #'org-linenote--post-command-hook))
 
-(add-hook 'minibuffer-setup-hook #'org-linenote--minibuf-setup-hook)
-(add-hook 'minibuffer-exit-hook #'org-linenote--minibuf-exit-hook)
+(define-minor-mode org-linenote-mode
+  "Toggle `org-linenote-mode'."
+  :init-value nil
+  :global nil
+  :lighter " Org-Linenote"
+
+  (if org-linenote-mode
+      (progn
+        (add-hook 'minibuffer-setup-hook #'org-linenote--minibuf-setup-hook)
+        (add-hook 'minibuffer-exit-hook #'org-linenote--minibuf-exit-hook)
+        (org-linenote-mark-notes))
+    (progn
+      (mapc (lambda (ov)
+              (delete-overlay ov)) org-linenote--overlays)
+      (setq org-linenote--overlays nil))))
 
 (defun org-linenote-browse ()
   "Browse notes for this buffer."
   (interactive)
   (org-linenote--validate)
   (condition-case err
-      (progn
-        (funcall 'org-linenote--browse))
+      (funcall #'org-linenote--browse)
     (quit
      (org-linenote--minibuf-exit-hook)
      (org-linenote-mark-notes)
