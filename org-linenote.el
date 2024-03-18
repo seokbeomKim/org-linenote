@@ -146,7 +146,7 @@ If not available, then return empty string."
   (if (use-region-p)
       (format "#L%S-L%S"
               (line-number-at-pos (use-region-beginning))
-              (line-number-at-pos (use-region-end)))
+              (line-number-at-pos (- (use-region-end) 1)))
     (format "#L%S" (line-number-at-pos))))
 
 (defun org-linenote--get-line-range-by-fname (filename)
