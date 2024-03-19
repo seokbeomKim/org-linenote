@@ -302,7 +302,7 @@ If not available, then return empty string."
                (buffer-id (current-buffer))
                (watch-id (file-notify-add-watch watch-directory
                                                 '(change)
-                                                'org-linenote--file-changed)))
+                                                #'org-linenote--file-changed)))
           (setq-local org-linenote--fwatch-id watch-id)
           (push `(,watch-id . ,buffer-id) org-linenote--buffers))
 
