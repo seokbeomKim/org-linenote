@@ -283,6 +283,17 @@ If not available, then return empty string."
        ((string= etype "created")
         (org-linenote--highlight fpath))))))
 
+(defun org-linenote--dealloc-fswatch ()
+  "Remove out the file watchers and corresponding list."
+  (file-notify-rm-watch org-linenote--fwatch-id)
+  (setq-local org-linenote--overlays nil)
+  (setq org-linenote--buffers
+        (delete (assoc org-linenote--fwatch-id org-linenote--buffers) org-linenote--buffers)))
+
+(defun org-linenote--buffer-killed ()
+  "A hook function for `kill-buffer-hook'."
+  (org-linenote--dealloc-fswatch))
+
 (define-minor-mode org-linenote-mode
   "Toggle `org-linenote-mode'."
   :init-value nil
@@ -296,6 +307,7 @@ If not available, then return empty string."
       (progn
         (add-hook 'minibuffer-setup-hook #'org-linenote--minibuf-setup-hook)
         (add-hook 'minibuffer-exit-hook #'org-linenote--minibuf-exit-hook)
+        (add-hook 'kill-buffer-hook #'org-linenote--buffer-killed :local)
 
         (let* ((watch-directory (expand-file-name (or (file-name-directory (org-linenote--get-relpath)) "")
                                                   (org-linenote--get-note-rootdir)))
@@ -309,10 +321,7 @@ If not available, then return empty string."
         (org-linenote-mark-notes))
     (progn
       (mapc #'delete-overlay org-linenote--overlays)
-      (file-notify-rm-watch org-linenote--fwatch-id)
-      (setq-local org-linenote--overlays nil)
-      (setq org-linenote--buffers
-            (delete (assoc org-linenote--fwatch-id org-linenote--buffers) org-linenote--buffers)))))
+      (org-linenote--dealloc-fswatch))))
 
 (defun org-linenote-browse ()
   "Browse notes for this buffer."
