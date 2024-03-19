@@ -6,7 +6,7 @@
 ;; Maintainer: Jason Kim <sukbeom.kim@gmail.com>
 ;; Created: February 18, 2024
 ;; Modified: February 18, 2024
-;; Version: 0.1.2
+;; Version: 0.1.3
 ;; Keywords: tools, note, org
 ;; Homepage: https://github.com/seokbeomKim/org-linenote
 ;; Package-Requires: ((emacs "29.1") (projectile "2.8.0") (vertico "1.7"))
@@ -39,6 +39,7 @@
 (require 'projectile)
 (require 'vertico)
 (require 'subr-x)
+(require 'filenotify)
 
 (defvar org-linenote--default-extension ".org"
   "Configure the default note extension.
@@ -54,8 +55,14 @@ vscode's linenote.")
 (defvar org-linenote--prev-window -1
   "Temporary value to store previously focused window.")
 
+(defvar org-linenote--buffers nil
+  "The target buffer to ensure line tracking.")
+
 (defvar-local org-linenote--overlays nil
   "Overlays in a local buffer.")
+
+(defvar-local org-linenote--fwatch-id nil
+  "File watcher id for org-linenote.")
 
 (defvar-local org-linenote-mode nil
   "Org-linenote mode flag.")
@@ -263,6 +270,19 @@ If not available, then return empty string."
   (org-linenote--remove-overlays-at (line-beginning-position))
   (remove-hook 'post-command-hook #'org-linenote--post-command-hook))
 
+(defun org-linenote--file-changed (event)
+  "A function to handle file watch `EVENT'."
+  (let* ((fs-id (nth 0 event))
+         (etype (nth 1 event))
+         (fpath (nth 2 event))
+         (buffer-of-event (cdr (assoc fs-id org-linenote--buffers))))
+    (with-current-buffer buffer-of-event
+      (cond
+       ((string= etype "deleted")
+        (org-linenote--highlight fpath t))
+       ((string= etype "created")
+        (org-linenote--highlight fpath))))))
+
 (define-minor-mode org-linenote-mode
   "Toggle `org-linenote-mode'."
   :init-value nil
@@ -276,10 +296,23 @@ If not available, then return empty string."
       (progn
         (add-hook 'minibuffer-setup-hook #'org-linenote--minibuf-setup-hook)
         (add-hook 'minibuffer-exit-hook #'org-linenote--minibuf-exit-hook)
+
+        (let* ((watch-directory (expand-file-name (or (file-name-directory (org-linenote--get-relpath)) "")
+                                                  (org-linenote--get-note-rootdir)))
+               (buffer-id (current-buffer))
+               (watch-id (file-notify-add-watch watch-directory
+                                                '(change)
+                                                'org-linenote--file-changed)))
+          (setq-local org-linenote--fwatch-id watch-id)
+          (push `(,watch-id . ,buffer-id) org-linenote--buffers))
+
         (org-linenote-mark-notes))
     (progn
       (mapc #'delete-overlay org-linenote--overlays)
-      (setq org-linenote--overlays nil))))
+      (file-notify-rm-watch org-linenote--fwatch-id)
+      (setq-local org-linenote--overlays nil)
+      (setq org-linenote--buffers
+            (delete (assoc org-linenote--fwatch-id org-linenote--buffers) org-linenote--buffers)))))
 
 (defun org-linenote-browse ()
   "Browse notes for this buffer."
