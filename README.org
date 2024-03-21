@@ -35,6 +35,10 @@ The package provides interactive functions as follows:
 - ~org-linenote-add-annotate~: to add a note for the current line.
 - ~org-linenote-edit-annotate~: an alias for ~org-linenote-add-annotate~. Edit the note corresponding to the current line.
 - ~org-linenote-remove-annotate~: to remove the note corresponding to the current line.
+- ~org-linenote-move-forward~: to move to the next note from the current line.
+- ~org-linenote-move-backward~: to move to the previous note from the current line.
+- ~org-linenote-find-root-dir~: to find the root directory of the project.
+- ~org-linenote-find-note-dir~: to find the note directory of the current buffer.
 
 ** Single-line and multi-line notes
 
@@ -59,6 +63,25 @@ Create a symbolic link (org-linenote directory to VS Code Linenote directory)
 #+BEGIN_SRC bash
 $ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
 #+END_SRC
+
+* Change-Log
+
+** 0.2.0
+- Fix a bug on mode activation
+- Add a feature to auto highlight by filenotify events
+- Add interactive functions to move to the next/previous note
+- Add interactive functions to find Linenote directory
+
+** 0.1.2
+- Refactor org-linenote-mode to use minor-mode
+- Modified code according to MELPA PR feedbacks (https://github.com/melpa/melpa/pull/8955)
+
+** 0.1.1
+- Fix a bug on note browsing
+- Add =org-linenote--default-extension=
+
+** 0.1.0
+- initial version
 
 * Feedback
 

@@ -1,4 +1,4 @@
-;;; org-linenote.el --- A package to add notes based on source code tree -*- lexical-binding: t; -*-
+;;; org-linenote.el --- A Emacs note package inspired by Visual Studio Code's Linenote. -*- lexical-binding: t; -*-
 ;;
 ;; Copyright (C) 2024
 ;;
@@ -6,7 +6,7 @@
 ;; Maintainer: Jason Kim <sukbeom.kim@gmail.com>
 ;; Created: February 18, 2024
 ;; Modified: February 18, 2024
-;; Version: 0.1.3
+;; Version: 0.2.0
 ;; Keywords: tools, note, org
 ;; Homepage: https://github.com/seokbeomKim/org-linenote
 ;; Package-Requires: ((emacs "29.1") (projectile "2.8.0") (vertico "1.7"))
@@ -26,13 +26,25 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this file.  If not, see <https://www.gnu.org/licenses/>.
 
-;;; Commentary:
-
-;; This is a Emacs package to add notes motivated by VSCode's Line Note.
-
-;; Setup:
+;;; Setup:
 
 ;; (require 'org-linenote)
+
+;;; Commentary:
+
+;; This file provides a source for linenote that manages notes based on the line
+;; number in a buffer. The package provides some interactive functions:
+
+;; - org-linenote-move-forward
+;; - org-linenote-move-backward
+;; - org-linenote-add-annotate
+;; - org-linenote-edit-annotate (alias to org-linenote-add-annotate)
+;; - org-linenote-remove-annotate
+;; - org-linenote-browse
+;; - org-linenote-find-root-dir
+;; - org-linenote-find-note-dir
+
+;; All notes are stored at $PROJECT_ROOT/.linenote directory.
 
 ;;; Code:
 
@@ -162,12 +174,58 @@ If not available, then return empty string."
   (with-temp-buffer
     (insert filename)
     (goto-char (point-min))
-    (when (re-search-forward ".*#L\\([0-9]+\\)\\(-L\\([0-9]+\\)\\)?\\(.*\\)?" nil t)
-      (let ((min (string-to-number (match-string 1)))
-            (max (if (match-beginning 3)
-                     (string-to-number (match-string 3))
-                   nil)))
-        (cons min max)))))
+    (if (re-search-forward ".*#L\\([0-9]+\\)\\(-L\\([0-9]+\\)\\)?\\(.*\\)?" nil t)
+        (let ((min (string-to-number (match-string 1)))
+              (max (if (match-beginning 3)
+                       (string-to-number (match-string 3))
+                     nil)))
+          (cons min max)))))
+
+(defun org-linenote--get-note-linum-by-direction (line is-forward)
+  "Check if there is a note within the `LINE'.
+
+If `IS-FORWARD' is t, then find the next note. Otherwise, find
+the previous note."
+  (let ((res
+         (cond (is-forward (line-number-at-pos (point-max)))
+               (t 0)))
+        (found nil))
+    (dolist (file (org-linenote--directory-files))
+      (let* ((range (org-linenote--get-line-range-by-fname file))
+             (min (car range))
+             (f (if is-forward #'< #'>)))
+        (if (and (funcall f line min)
+                 (funcall f min res))
+            (progn
+              (setq found t)
+              (setq res min)))))
+    (if found res)))
+
+(defun org-linenote--move-forward (is-forward)
+  "Move to the next note.
+
+If `IS-FORWARD' is nil, then move to the previous note."
+  (let* ((current-line (line-number-at-pos))
+         (next-line (org-linenote--get-note-linum-by-direction
+                     current-line
+                     is-forward))
+         (f (if is-forward #'> #'<)))
+    (if (and next-line
+             (funcall f next-line current-line))
+        (forward-line (- next-line current-line))
+      (message "No more notes"))))
+
+(defun org-linenote-move-forward ()
+  "Move to the next note."
+  (interactive)
+  (org-linenote--validate)
+  (org-linenote--move-forward t))
+
+(defun org-linenote-move-backward ()
+  "Move to the previous note."
+  (interactive)
+  (org-linenote--validate)
+  (org-linenote--move-forward nil))
 
 (defun org-linenote--check-line-range (line)
   "Check if there is a note within the `LINE'."
@@ -177,8 +235,8 @@ If not available, then return empty string."
              (min (car range))
              (max (cdr range)))
         (if (and max
-                 (and (<= min line)
-                      (<= line max)))
+                 (<= min line)
+                 (<= line max))
             (setq res file)
           (if (and (null max)
                    (= min line))
@@ -276,12 +334,17 @@ If not available, then return empty string."
          (etype (nth 1 event))
          (fpath (nth 2 event))
          (buffer-of-event (cdr (assoc fs-id org-linenote--buffers))))
-    (with-current-buffer buffer-of-event
-      (cond
-       ((string= etype "deleted")
-        (org-linenote--highlight fpath t))
-       ((string= etype "created")
-        (org-linenote--highlight fpath))))))
+
+    (when (string-match-p
+           (regexp-quote (file-name-nondirectory
+                          (buffer-file-name buffer-of-event)))
+           (file-name-base fpath))
+      (with-current-buffer buffer-of-event
+        (cond
+         ((string= etype "deleted")
+          (org-linenote--highlight fpath t))
+         ((string= etype "created")
+          (org-linenote--highlight fpath)))))))
 
 (defun org-linenote--dealloc-fswatch ()
   "Remove out the file watchers and corresponding list."
@@ -305,6 +368,8 @@ If not available, then return empty string."
 
   (if org-linenote-mode
       (progn
+        (org-linenote--validate)
+
         (add-hook 'minibuffer-setup-hook #'org-linenote--minibuf-setup-hook)
         (add-hook 'minibuffer-exit-hook #'org-linenote--minibuf-exit-hook)
         (add-hook 'kill-buffer-hook #'org-linenote--buffer-killed :local)
@@ -327,12 +392,30 @@ If not available, then return empty string."
   "Browse notes for this buffer."
   (interactive)
   (org-linenote--validate)
-  (condition-case err
+  (condition-case _
       (funcall #'org-linenote--browse)
     (quit
      (org-linenote--minibuf-exit-hook)
-     (org-linenote-mark-notes)
-     (message "Note browsing aborted: %s" err))))
+     (org-linenote-mark-notes))))
+
+(defun org-linenote-find-root-dir ()
+  "Open the linenote root directory for the current project."
+  (interactive)
+  (org-linenote--validate)
+  (let ((note-dir (org-linenote--get-note-rootdir)))
+    (if (file-exists-p note-dir)
+        (find-file note-dir)
+      (error "No notes found"))))
+
+(defun org-linenote-find-note-dir ()
+  "Open the note directory for the current file."
+  (interactive)
+  (org-linenote--validate)
+  (let ((note-dir (expand-file-name (or (file-name-directory (org-linenote--get-relpath)) "")
+                                    (org-linenote--get-note-rootdir))))
+    (if (file-exists-p note-dir)
+        (find-file note-dir)
+      (error "No notes found"))))
 
 (defun org-linenote--browse ()
   "Browse notes in the current buffer.
