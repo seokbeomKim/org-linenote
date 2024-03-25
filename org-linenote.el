@@ -1,4 +1,4 @@
-;;; org-linenote.el --- A Emacs note package inspired by Visual Studio Code's Linenote. -*- lexical-binding: t; -*-
+;;; org-linenote.el --- A package inspired by VSCode Linenote -*- lexical-binding: t; -*-
 ;;
 ;; Copyright (C) 2024
 ;;
