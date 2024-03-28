@@ -1,0 +1,24 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - name: Install dependencies
+        run: |
+          sudo apt update -y
+          sudo apt install emacs -y
+            sudo apt install git jq mercurial texinfo -y
+
+          echo -e "[ui]\ntls = False" >> $HOME/.hgrc
+          echo -e "[extensions]\npurge = " >> $HOME/.hgrc
+
+      - name: Run Melpazoid
+        run: |
+          git clone https://github.com/riscy/melpazoid.git --depth=1
+          pushd melpazoid
+          RECIPE='(org-linenote :repo "seokbeomkim/org-linenote" :fetcher github :branch "${{ github.ref_name }}")' make && echo "Checked with melpazoid."
