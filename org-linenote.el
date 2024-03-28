@@ -147,7 +147,7 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
         t)
     (error "The working directory is not a git repo")))
 
-(defun org-linenote--get-note-rootdir()
+(defun org-linenote--get-note-rootdir ()
   "Get the root directory of the note based on projectile.
 If not available, then return empty string."
   (if-let ((project-root (projectile-project-root)))
@@ -160,7 +160,7 @@ If not available, then return empty string."
 (defalias 'org-linenote-edit-annotate #'org-linenote-add-annotate
   "This is an alias to `org-linenote-add-annotate'.")
 
-(defun org-linenote-get-linenum-string ()
+(defun org-linenote--get-linenum-string ()
   "Get the linenum string for filename."
   (if (use-region-p)
       (format "#L%S-L%S"
@@ -247,7 +247,7 @@ If `IS-FORWARD' is nil, then move to the previous note."
   "Check whether the note for current line exists."
   (or (org-linenote--check-line-range (line-number-at-pos))
       (expand-file-name (concat (org-linenote--get-relpath)
-                                (org-linenote-get-linenum-string)
+                                (org-linenote--get-linenum-string)
                                 org-linenote--default-extension)
                         (org-linenote--get-note-rootdir))))
 
