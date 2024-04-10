@@ -39,6 +39,7 @@ The package provides interactive functions as follows:
 - ~org-linenote-move-backward~: to move to the previous note from the current line.
 - ~org-linenote-find-root-dir~: to find the root directory of the project.
 - ~org-linenote-find-note-dir~: to find the note directory of the current buffer.
+- ~org-linenote-auto-open~: to enable the note-following feature to view notes of the currently focused line.
 
 ** Single-line and multi-line notes
 
@@ -65,6 +66,10 @@ $ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
 #+END_SRC
 
 * Change-Log
+
+** 0.2.1
+- Add an interactive function to toggle auto-open feature
+- Fixed incorrect function names
 
 ** 0.2.0
 - Fix a bug on mode activation

@@ -5,8 +5,8 @@
 ;; Author: Jason Kim <sukbeom.kim@gmail.com>
 ;; Maintainer: Jason Kim <sukbeom.kim@gmail.com>
 ;; Created: February 18, 2024
-;; Modified: February 18, 2024
-;; Version: 0.2.0
+;; Modified: April 10, 2024
+;; Version: 0.2.1
 ;; Keywords: tools, note, org
 ;; Homepage: https://github.com/seokbeomKim/org-linenote
 ;; Package-Requires: ((emacs "29.1") (projectile "2.8.0") (vertico "1.7"))
@@ -43,6 +43,7 @@
 ;; - org-linenote-browse
 ;; - org-linenote-find-root-dir
 ;; - org-linenote-find-note-dir
+;; - org-linenote-auto-open
 
 ;; All notes are stored at $PROJECT_ROOT/.linenote directory.
 
@@ -75,6 +76,10 @@ vscode's linenote.")
 
 (defvar-local org-linenote--fwatch-id nil
   "File watcher id for org-linenote.")
+
+(defvar-local org-linenote--follow-cursor nil
+  "A flag indicating whether the org-linenote feature should follow \
+the cursor.")
 
 (defvar-local org-linenote-mode nil
   "Org-linenote mode flag.")
@@ -243,19 +248,28 @@ If `IS-FORWARD' is nil, then move to the previous note."
               (setq res file)))))
     res))
 
-(defun org-linenote--check-already-exist ()
-  "Check whether the note for current line exists."
-  (or (org-linenote--check-line-range (line-number-at-pos))
+(defun org-linenote--check-note-exist ()
+  "Check whether the note for current line exists.
+If the note exists, return the absolute path, otherwise return nil."
+  (org-linenote--check-line-range (line-number-at-pos)))
+
+(defun org-linenote--get-candidate-note-path ()
+  "Get the note's absolute path for corresponding line."
+  (or (org-linenote--check-note-exist)
       (expand-file-name (concat (org-linenote--get-relpath)
                                 (org-linenote--get-linenum-string)
                                 org-linenote--default-extension)
                         (org-linenote--get-note-rootdir))))
 
-(defun org-linenote-add-annotate ()
-  "Annotate on the line."
+(defun org-linenote-add-annotate (&optional keep-focus)
+  "Annotate on the line.
+
+`KEEP-FOCUS': by default, the cursor will be into newly opened
+buffer. If you set this argument to t, the function will not
+change the focus after the line highlight."
   (interactive)
   (org-linenote--validate)
-  (let ((note-path (org-linenote--check-already-exist))
+  (let ((note-path (org-linenote--get-candidate-note-path))
         (working-buf (selected-window))
         (current-line (line-number-at-pos)))
     (pop-to-buffer (find-file-noselect note-path) 'reusable-frames)
@@ -264,13 +278,15 @@ If `IS-FORWARD' is nil, then move to the previous note."
     (goto-char (point-min))
     (forward-line current-line)
     (org-linenote-mark-notes)
-    (pop-to-buffer (find-file-noselect note-path) 'reusable-frames)))
+    (forward-line -1)
+    (if (not keep-focus)
+        (pop-to-buffer (find-file-noselect note-path) 'reusable-frames))))
 
 (defun org-linenote-remove-annotate ()
   "Remove the annotation on the line."
   (interactive)
   (org-linenote--validate)
-  (let ((note-path (org-linenote--check-already-exist)))
+  (let ((note-path (org-linenote--get-candidate-note-path)))
     (if (not (file-exists-p note-path))
         (error "No notes to remove from here")
       (condition-case _
@@ -381,11 +397,13 @@ If `IS-FORWARD' is nil, then move to the previous note."
                                                 '(change)
                                                 #'org-linenote--file-changed)))
           (setq-local org-linenote--fwatch-id watch-id)
+          (setq-local org-linenote--follow-cursor nil)
           (push `(,watch-id . ,buffer-id) org-linenote--buffers))
 
         (org-linenote-mark-notes))
     (progn
       (mapc #'delete-overlay org-linenote--overlays)
+      (org-linenote--auto-open-at-cursor 'false)
       (org-linenote--dealloc-fswatch))))
 
 (defun org-linenote-browse ()
@@ -416,6 +434,31 @@ If `IS-FORWARD' is nil, then move to the previous note."
     (if (file-exists-p note-dir)
         (find-file note-dir)
       (error "No notes found"))))
+
+(defun org-linenote--follow-func ()
+  "A hook function for `note-follow' feature."
+  (if (org-linenote--check-note-exist)
+      (org-linenote-edit-annotate t)))
+
+(defun org-linenote--auto-open-at-cursor (&optional toggle)
+  "Toggle org-linenote follow mode.
+
+This let you open the note automatically. if `TOGGLE' is \=false,
+disable note-follow. if `TOGGLE' is \=true, enable note-follow."
+  (let ((set-to (cond ((eq toggle 'true) t)
+                      ((eq toggle 'false) nil)
+                      ((eq toggle nil) (not org-linenote--follow-cursor)))))
+    (setq-local org-linenote--follow-cursor set-to)
+    (if org-linenote--follow-cursor
+        (add-hook 'post-command-hook #'org-linenote--follow-func nil t)
+      (remove-hook 'post-command-hook #'org-linenote--follow-func t))))
+
+(defun org-linenote-auto-open ()
+  "Toggle org-linenote follow mode."
+  (interactive)
+  (org-linenote--auto-open-at-cursor)
+  (message "org-linenote note-follow %s"
+           (if org-linenote--follow-cursor "enabled" "disabled")))
 
 (defun org-linenote--browse ()
   "Browse notes in the current buffer.
