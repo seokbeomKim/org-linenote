@@ -447,7 +447,7 @@ This let you open the note automatically. if `TOGGLE' is \=false,
 disable note-follow. if `TOGGLE' is \=true, enable note-follow."
   (let ((set-to (cond ((eq toggle 'true) t)
                       ((eq toggle 'false) nil)
-                      ((eq toggle nil) (not org-linenote--follow-cursor)))))
+                      ((null toggle) (not org-linenote--follow-cursor)))))
     (setq-local org-linenote--follow-cursor set-to)
     (if org-linenote--follow-cursor
         (add-hook 'post-command-hook #'org-linenote--follow-func nil t)
