@@ -54,7 +54,7 @@
 (require 'subr-x)
 (require 'filenotify)
 
-(defcustom org-linenote--default-extension ".org"
+(defcustom org-linenote-default-extension ".org"
   "Configure the default note extension.
 If you set this to `.md', then it supports compability with
 vscode's linenote."
@@ -260,7 +260,7 @@ If the note exists, return the absolute path, otherwise return nil."
   (or (org-linenote--check-note-exist)
       (expand-file-name (concat (org-linenote--get-relpath)
                                 (org-linenote--get-linenum-string)
-                                org-linenote--default-extension)
+                                org-linenote-default-extension)
                         (org-linenote--get-note-rootdir))))
 
 (defun org-linenote-add-annotate (&optional keep-focus)
