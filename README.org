@@ -67,6 +67,9 @@ $ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
 
 * Change-Log
 
+** 0.2.2
+- Change =org-linenote--default-extension= and =org-linenote--highlight-style= to customizable variables. Now it is available in =M-x customize=.
+
 ** 0.2.1
 - Add an interactive function to toggle auto-open feature
 - Fixed incorrect function names
@@ -87,6 +90,9 @@ $ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
 
 ** 0.1.0
 - initial version
+
+* To-Do
+- eldoc support
 
 * Feedback
 

@@ -6,7 +6,7 @@
 ;; Maintainer: Jason Kim <sukbeom.kim@gmail.com>
 ;; Created: February 18, 2024
 ;; Modified: April 10, 2024
-;; Version: 0.2.1
+;; Version: 0.2.2
 ;; Keywords: tools, note, org
 ;; Homepage: https://github.com/seokbeomKim/org-linenote
 ;; Package-Requires: ((emacs "29.1") (projectile "2.8.0") (vertico "1.7"))
@@ -54,12 +54,14 @@
 (require 'subr-x)
 (require 'filenotify)
 
-(defvar org-linenote--default-extension ".org"
+(defcustom org-linenote--default-extension ".org"
   "Configure the default note extension.
 If you set this to `.md', then it supports compability with
-vscode's linenote.")
+vscode's linenote."
+  :type 'string
+  :group 'org-linenote)
 
-(defvar org-linenote--highlight-style '(:background "medium turquoise" :underline nil)
+(defface org-linenote--highlight-style '((t :background "medium turquoise" :underline nil))
   "Highlight style for the note.")
 
 (defvar org-linenote--in-browse nil
@@ -110,7 +112,7 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
     (org-linenote--remove-overlays-at (region-beginning))
     (if (null undo)
         (let ((ov (make-overlay (region-beginning) (- (region-end) 1))))
-          (overlay-put ov 'face org-linenote--highlight-style)
+          (overlay-put ov 'face 'org-linenote--highlight-style)
           (if (overlay-buffer ov)
               (push ov org-linenote--overlays))))
     (forward-line -1)
