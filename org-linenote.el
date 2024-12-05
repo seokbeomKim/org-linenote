@@ -6,10 +6,10 @@
 ;; Maintainer: Jason Kim <sukbeom.kim@gmail.com>
 ;; Created: February 18, 2024
 ;; Modified: April 10, 2024
-;; Version: 0.2.2
+;; Version: 0.2.3
 ;; Keywords: tools, note, org
 ;; Homepage: https://github.com/seokbeomKim/org-linenote
-;; Package-Requires: ((emacs "29.1") (projectile "2.8.0") (vertico "1.7"))
+;; Package-Requires: ((emacs "29.1") (projectile "2.8.0") (vertico "1.7") (eldoc "1.11") (lsp-mode "9.0.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,7 +33,7 @@
 ;;; Commentary:
 
 ;; This file provides a source for linenote that manages notes based on the line
-;; number in a buffer. The package provides some interactive functions:
+;; number in a buffer.  The package provides some interactive functions:
 
 ;; - org-linenote-move-forward
 ;; - org-linenote-move-backward
@@ -53,6 +53,8 @@
 (require 'vertico)
 (require 'subr-x)
 (require 'filenotify)
+(require 'lsp-mode)
+(require 'eldoc)
 
 (defcustom org-linenote-default-extension ".org"
   "Configure the default note extension.
@@ -191,7 +193,7 @@ If not available, then return empty string."
 (defun org-linenote--get-note-linum-by-direction (line is-forward)
   "Check if there is a note within the `LINE'.
 
-If `IS-FORWARD' is t, then find the next note. Otherwise, find
+If `IS-FORWARD' is t, then find the next note.  Otherwise, find
 the previous note."
   (let ((res
          (cond (is-forward (line-number-at-pos (point-max)))
@@ -267,7 +269,7 @@ If the note exists, return the absolute path, otherwise return nil."
   "Annotate on the line.
 
 `KEEP-FOCUS': by default, the cursor will be into newly opened
-buffer. If you set this argument to t, the function will not
+buffer.  If you set this argument to t, the function will not
 change the focus after the line highlight."
   (interactive)
   (org-linenote--validate)
@@ -402,8 +404,13 @@ change the focus after the line highlight."
           (setq-local org-linenote--follow-cursor nil)
           (push `(,watch-id . ,buffer-id) org-linenote--buffers))
 
-        (org-linenote-mark-notes))
+        (org-linenote-mark-notes)
+        (setq-local eldoc-documentation-functions
+                    (cons 'org-linenote--eldoc-show-buffer eldoc-documentation-functions)))
+
     (progn
+      (setq-local eldoc-documentation-functions
+                  (delete 'org-linenote--eldoc-show-buffer eldoc-documentation-functions))
       (mapc #'delete-overlay org-linenote--overlays)
       (org-linenote--auto-open-at-cursor 'false)
       (org-linenote--dealloc-fswatch))))
@@ -445,8 +452,8 @@ change the focus after the line highlight."
 (defun org-linenote--auto-open-at-cursor (&optional toggle)
   "Toggle org-linenote follow mode.
 
-This let you open the note automatically. if `TOGGLE' is \=false,
-disable note-follow. if `TOGGLE' is \=true, enable note-follow."
+This let you open the note automatically.  if `TOGGLE' is \=false,
+disable note-follow.  if `TOGGLE' is \=true, enable note-follow."
   (let ((set-to (cond ((eq toggle 'true) t)
                       ((eq toggle 'false) nil)
                       ((null toggle) (not org-linenote--follow-cursor)))))
@@ -469,6 +476,23 @@ Argument CHOICE user's selection."
                                  (org-linenote--get-note-list) nil t)))
     (org-linenote-mark-notes)
     (pop-to-buffer (find-file-noselect choice 'reusable-frames))))
+
+(defun org-linenote--eldoc-show-buffer (&optional args)
+  "Show the first line of a candidate note in the mini-buffer.
+Optional argument `ARGS' Return the string for eldoc.  Since we need
+only note buffer, there is no usage of `ARGS' at all."
+
+  (let ((note-path (org-linenote--get-candidate-note-path)))
+    (when (and note-path (file-exists-p note-path))
+      (with-temp-buffer
+        (insert-file-contents note-path)
+        (let* ((file-buffer (buffer-string))
+               (file-ext (file-name-extension note-path))
+               (language '(("org" . "org")
+                           ("md" . "markdown"))))
+          (condition-case e
+              (lsp--render-string file-buffer (cdr (assoc file-ext language)))
+            (error (message "handle error: %s" e))))))))
 
 (provide 'org-linenote)
 ;;; org-linenote.el ends here
