@@ -65,7 +65,8 @@ vscode's linenote."
 
 (defcustom org-linenote-use-eldoc t
   "Enable Eldoc to display the note.
-When enabled, the note appears before strings from LSP.  Set this to nil to disable eldoc."
+When enabled, the note appears before strings from LSP.  Set this to nil
+to disable eldoc."
   :type 'boolean
   :group 'org-linenote)
 
@@ -388,7 +389,7 @@ change the focus after the line highlight."
   (mapc #'delete-overlay org-linenote--overlays))
 
 (defun org-linenote--enable ()
-  "Enable org-linenote-mode."
+  "A function to enable `org-linenote-mode'."
   (org-linenote--validate)
 
   (add-hook 'minibuffer-setup-hook #'org-linenote--minibuf-setup-hook)
@@ -412,7 +413,7 @@ change the focus after the line highlight."
                 (cons 'org-linenote--eldoc-show-buffer eldoc-documentation-functions))))
 
 (defun org-linenote--disable ()
-  "Disable org-linenote-mode."
+  "A function to disable `org-linenote-mode'."
   (setq-local eldoc-documentation-functions
               (delete 'org-linenote--eldoc-show-buffer eldoc-documentation-functions))
 
@@ -502,7 +503,7 @@ Argument CHOICE user's selection."
   "Show the first line of a candidate note in the mini-buffer.
 Optional argument `ARGS' Return the string for eldoc.  Since we need
 only note buffer, there is no usage of `ARGS' at all."
-
+  (ignore args)
   (let ((note-path (org-linenote--get-candidate-note-path)))
     (when (and note-path (file-exists-p note-path))
       (with-temp-buffer
