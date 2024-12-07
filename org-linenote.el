@@ -383,6 +383,48 @@ change the focus after the line highlight."
   "A hook function for `kill-buffer-hook'."
   (org-linenote--dealloc-fswatch))
 
+(defun org-linenote--remove-all-overlays ()
+  "Remove all overlays in the current buffer."
+  (mapc #'delete-overlay org-linenote--overlays))
+
+(defun org-linenote--enable ()
+  "Enable org-linenote-mode."
+  (org-linenote--validate)
+
+  (add-hook 'minibuffer-setup-hook #'org-linenote--minibuf-setup-hook)
+  (add-hook 'minibuffer-exit-hook #'org-linenote--minibuf-exit-hook)
+  (add-hook 'kill-buffer-hook #'org-linenote--buffer-killed :local)
+  (add-hook 'before-revert-hook #'org-linenote--remove-all-overlays :local)
+
+  (let* ((watch-directory (expand-file-name (or (file-name-directory (org-linenote--get-relpath)) "")
+                                            (org-linenote--get-note-rootdir)))
+         (buffer-id (current-buffer))
+         (watch-id (file-notify-add-watch watch-directory
+                                          '(change)
+                                          #'org-linenote--file-changed)))
+    (setq-local org-linenote--fwatch-id watch-id)
+    (setq-local org-linenote--follow-cursor nil)
+    (push `(,watch-id . ,buffer-id) org-linenote--buffers))
+
+  (org-linenote-mark-notes)
+  (when org-linenote-use-eldoc
+    (setq-local eldoc-documentation-functions
+                (cons 'org-linenote--eldoc-show-buffer eldoc-documentation-functions))))
+
+(defun org-linenote--disable ()
+  "Disable org-linenote-mode."
+  (setq-local eldoc-documentation-functions
+              (delete 'org-linenote--eldoc-show-buffer eldoc-documentation-functions))
+
+  (remove-hook 'minibuffer-setup-hook #'org-linenote--minibuf-setup-hook)
+  (remove-hook 'minibuffer-exit-hook #'org-linenote--minibuf-exit-hook)
+  (remove-hook 'kill-buffer-hook #'org-linenote--buffer-killed :local)
+  (remove-hook 'before-revert-hook #'org-linenote--remove-all-overlays :local)
+
+  (org-linenote--remove-all-overlays)
+  (org-linenote--auto-open-at-cursor 'false)
+  (org-linenote--dealloc-fswatch))
+
 (define-minor-mode org-linenote-mode
   "Toggle `org-linenote-mode'."
   :init-value nil
@@ -392,35 +434,7 @@ change the focus after the line highlight."
   (unless (projectile-project-root)
     (error "The working directory is not a git repo"))
 
-  (if org-linenote-mode
-      (progn
-        (org-linenote--validate)
-
-        (add-hook 'minibuffer-setup-hook #'org-linenote--minibuf-setup-hook)
-        (add-hook 'minibuffer-exit-hook #'org-linenote--minibuf-exit-hook)
-        (add-hook 'kill-buffer-hook #'org-linenote--buffer-killed :local)
-
-        (let* ((watch-directory (expand-file-name (or (file-name-directory (org-linenote--get-relpath)) "")
-                                                  (org-linenote--get-note-rootdir)))
-               (buffer-id (current-buffer))
-               (watch-id (file-notify-add-watch watch-directory
-                                                '(change)
-                                                #'org-linenote--file-changed)))
-          (setq-local org-linenote--fwatch-id watch-id)
-          (setq-local org-linenote--follow-cursor nil)
-          (push `(,watch-id . ,buffer-id) org-linenote--buffers))
-
-        (org-linenote-mark-notes)
-        (when org-linenote-use-eldoc
-          (setq-local eldoc-documentation-functions
-                      (cons 'org-linenote--eldoc-show-buffer eldoc-documentation-functions))))
-
-    (progn
-      (setq-local eldoc-documentation-functions
-                  (delete 'org-linenote--eldoc-show-buffer eldoc-documentation-functions))
-      (mapc #'delete-overlay org-linenote--overlays)
-      (org-linenote--auto-open-at-cursor 'false)
-      (org-linenote--dealloc-fswatch))))
+  (if org-linenote-mode (org-linenote--enable) (org-linenote--disable)))
 
 (defun org-linenote-browse ()
   "Browse notes for this buffer."
