@@ -70,3 +70,4 @@
         (should (not (null (member (file-name-base x) should-list))))))))
 
 (provide 'org-linenote-test)
+;;; org-linenote-test.el ends here
