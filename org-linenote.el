@@ -63,6 +63,12 @@ vscode's linenote."
   :type 'string
   :group 'org-linenote)
 
+(defcustom org-linenote-use-eldoc t
+  "Enable Eldoc to display the note.
+When enabled, the note appears before strings from LSP.  Set this to nil to disable eldoc."
+  :type 'boolean
+  :group 'org-linenote)
+
 (defface org-linenote--highlight-style '((t :background "medium turquoise" :underline nil))
   "Highlight style for the note.")
 
@@ -405,8 +411,9 @@ change the focus after the line highlight."
           (push `(,watch-id . ,buffer-id) org-linenote--buffers))
 
         (org-linenote-mark-notes)
-        (setq-local eldoc-documentation-functions
-                    (cons 'org-linenote--eldoc-show-buffer eldoc-documentation-functions)))
+        (when org-linenote-use-eldoc
+          (setq-local eldoc-documentation-functions
+                      (cons 'org-linenote--eldoc-show-buffer eldoc-documentation-functions))))
 
     (progn
       (setq-local eldoc-documentation-functions
