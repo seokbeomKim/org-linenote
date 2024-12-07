@@ -67,6 +67,10 @@ $ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
 
 * Change-Log
 
+** 1.0.0
+- Add eldoc support.
+- Fix a bug on revert-buffer.
+
 ** 0.2.2
 - Change =org-linenote--default-extension= and =org-linenote--highlight-style= to customizable variables. Now it is available in =M-x customize=.
 
