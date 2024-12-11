@@ -25,8 +25,13 @@ These features make =org-linenote= useful when you need 'line-by-line' notes to 
 #+END_SRC
 
 * Usage
-
+*Basic usage*
 [[https://github.com/seokbeomKim/org-linenote/blob/image/example.gif]]
+
+*Eldoc support*
+[[https://github.com/seokbeomKim/org-linenote/blob/image/example-eldoc.png]]
+
+** Interactive functions
 
 The package provides interactive functions as follows:
 
@@ -40,6 +45,24 @@ The package provides interactive functions as follows:
 - ~org-linenote-find-root-dir~: to find the root directory of the project.
 - ~org-linenote-find-note-dir~: to find the note directory of the current buffer.
 - ~org-linenote-auto-open~: to enable the note-following feature to view notes of the currently focused line.
+
+** M-x customize
+
+The following variables are customizable via ~M-x customize~.
+
+- ~org-linenote-use-eldoc~: to enable or disable eldoc support.
+- ~org-linenote-use-highlight~: to enable or disable line highlighting.
+- ~org-linenote-use-fringe~: to enable or disable fringe support.
+- ~org-linenote-fringe-side~: to configure the side of the fringes.
+
+*** Fringe
+
+- ~org-linenote-fringe-side~: to choose between ~'left-fringe~ or ~'right-fringe~.
+- ~org-linenote-fringe-face~: to configure the face (i.e. color) of the fringes.
+- ~org-linenote-fringe-bitmap~: to set the fringe bitmap style.
+
+*** Highlight
+- ~org-linenote-highlight-style~: to customize the style of highlighting.
 
 ** Single-line and multi-line notes
 
@@ -67,36 +90,40 @@ $ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
 
 * Change-Log
 
+** 1.0.1
+- Added support for fringes.
+- Fixed a highlighting issue caused by temporary files.
+  
 ** 1.0.0
-- Add eldoc support.
-- Fix a bug on revert-buffer.
+- Added eldoc support.
+- Fixed a bug on revert-buffer.
 
 ** 0.2.2
-- Change =org-linenote--default-extension= and =org-linenote--highlight-style= to customizable variables. Now it is available in =M-x customize=.
+- Changed =org-linenote--default-extension= and =org-linenote--highlight-style= to customizable variables. Now it is available in =M-x customize=.
 
 ** 0.2.1
-- Add an interactive function to toggle auto-open feature
+- Added an interactive function to toggle auto-open feature
 - Fixed incorrect function names
 
 ** 0.2.0
-- Fix a bug on mode activation
-- Add a feature to auto highlight by filenotify events
-- Add interactive functions to move to the next/previous note
-- Add interactive functions to find Linenote directory
+- Fixed a bug on mode activation
+- Added a feature to auto highlight by filenotify events
+- Added interactive functions to move to the next/previous note
+- Added interactive functions to find Linenote directory
 
 ** 0.1.2
-- Refactor org-linenote-mode to use minor-mode
+- Refactored org-linenote-mode to use minor-mode
 - Modified code according to MELPA PR feedbacks (https://github.com/melpa/melpa/pull/8955)
 
 ** 0.1.1
-- Fix a bug on note browsing
+- Fixed a bug on note browsing
 - Add =org-linenote--default-extension=
 
 ** 0.1.0
 - initial version
 
 * To-Do
-- eldoc support
+- tag support
 
 * Feedback
 

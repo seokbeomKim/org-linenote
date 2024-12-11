@@ -6,10 +6,10 @@
 ;; Maintainer: Jason Kim <sukbeom.kim@gmail.com>
 ;; Created: February 18, 2024
 ;; Modified: April 10, 2024
-;; Version: 1.0.0
+;; Version: 1.0.1
 ;; Keywords: tools, note, org
 ;; Homepage: https://github.com/seokbeomKim/org-linenote
-;; Package-Requires: ((emacs "29.1") (projectile "2.8.0") (vertico "1.7") (eldoc "1.11") (lsp-mode "9.0.0"))
+;; Package-Requires: ((emacs "29.1") (projectile "2.8.0") (vertico "1.7") (eldoc "1.11") (lsp-mode "9.0.0") (fringe-helper "1.0.1"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -55,6 +55,7 @@
 (require 'filenotify)
 (require 'lsp-mode)
 (require 'eldoc)
+(require 'fringe-helper)
 
 (defcustom org-linenote-default-extension ".org"
   "Configure the default note extension.
@@ -70,8 +71,31 @@ to disable eldoc."
   :type 'boolean
   :group 'org-linenote)
 
-(defface org-linenote--highlight-style '((t :background "medium turquoise" :underline nil))
-  "Highlight style for the note.")
+(defcustom org-linenote-use-highlight t
+  "Enable highlighting for notes.
+If non-nil, the line with the note will be highlighted.  Set to nil not
+to disable this feature."
+  :type 'boolean
+  :group 'org-linenote)
+
+(defcustom org-linenote-use-fringe t
+  "Enable the fringe to display the notes.
+If non-nil, a fringe bitmap indicating notes will appear in the buffer.
+Set to nil to disable the fringe."
+  :type 'boolean
+  :group 'org-linenote)
+
+(defcustom org-linenote-fringe-side 'left-fringe
+  "Set the fringe position.
+Either \='left-fringe or \='right-fringe is available."
+  :type 'symbol
+  :group 'org-linenote)
+
+(defface org-linenote-highlight-style '((t :background "medium turquoise" :underline nil))
+  "Highlight style for the notes.")
+
+(defface org-linenote-fringe-face '((t :foreground "#aaaaee" :weight bold))
+  "Fringe color for the notes.")
 
 (defvar org-linenote--in-browse nil
   "A flag of browse function.")
@@ -81,6 +105,20 @@ to disable eldoc."
 
 (defvar org-linenote--buffers nil
   "The target buffer to ensure line tracking.")
+
+(eval-and-compile
+  (defcustom org-linenote-fringe-bitmap
+    '("XX......"
+      "XX......"
+      "XX..XX.."
+      "XX..XX.."
+      "XX..XX.."
+      "XX..XX.."
+      "XX......"
+      "XX......")
+    "Define a fringe bitmap to indicate notes."
+    :type '(repeat string)
+    :group 'org-linenote))
 
 (defvar-local org-linenote--overlays nil
   "Overlays in a local buffer.")
@@ -94,6 +132,9 @@ the cursor.")
 
 (defvar-local org-linenote-mode nil
   "Org-linenote mode flag.")
+
+(defvar-local org-linenote--fringes nil
+  "A list of fringes.")
 
 (defun org-linenote--lines-to-highlight (filename)
   "Get beginning/end line number to highlight from `FILENAME'."
@@ -115,19 +156,35 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
          (diff-line (- max-line min-line)))
     (goto-char (point-min))
     (forward-line min-line)
-    (beginning-of-line)
-    (set-mark (line-beginning-position))
-    (forward-line diff-line)
-    (org-linenote--remove-overlays-at (region-beginning))
-    (if (null undo)
-        (let ((ov (make-overlay (region-beginning) (- (region-end) 1))))
-          (overlay-put ov 'face 'org-linenote--highlight-style)
-          (if (overlay-buffer ov)
-              (push ov org-linenote--overlays))))
-    (forward-line -1)
-    (deactivate-mark)
-    (goto-char (point-min))
-    (forward-line min-line)))
+
+    (mapc (lambda (v) (delete-overlay v))
+            (overlays-in (line-beginning-position) (line-end-position)))
+
+    (when org-linenote-use-fringe
+      (fringe-helper-define 'org-linenote--fringe-bitmap '(center)
+        (mapconcat #'identity org-linenote-fringe-bitmap "\n"))
+
+      (if (null undo)
+          (push (fringe-helper-insert 'org-linenote--fringe-bitmap
+                                      (point)
+                                      org-linenote-fringe-side
+                                      'org-linenote-fringe-face)
+                org-linenote--fringes)))
+
+    (when org-linenote-use-highlight
+      (beginning-of-line)
+      (set-mark (line-beginning-position))
+      (forward-line diff-line)
+      (org-linenote--remove-overlays-at (region-beginning))
+      (if (null undo)
+          (let ((ov (make-overlay (region-beginning) (- (region-end) 1))))
+            (overlay-put ov 'face 'org-linenote-highlight-style)
+            (if (overlay-buffer ov)
+                (push ov org-linenote--overlays))))
+      (forward-line -1)
+      (deactivate-mark)
+      (goto-char (point-min))
+      (forward-line min-line))))
 
 (defun org-linenote-mark-notes ()
   "Highlight lines with annotated notes."
@@ -355,6 +412,10 @@ change the focus after the line highlight."
   (org-linenote--remove-overlays-at (line-beginning-position))
   (remove-hook 'post-command-hook #'org-linenote--post-command-hook))
 
+(defun org-linenote--is-backup-file (file-path)
+  "Check the file located at `FILE-PATH is temporary file."
+  (string= (substring (file-name-base file-path) 0 2) ".#"))
+
 (defun org-linenote--file-changed (event)
   "A function to handle file watch `EVENT'."
   (let* ((fs-id (nth 0 event))
@@ -362,10 +423,11 @@ change the focus after the line highlight."
          (fpath (nth 2 event))
          (buffer-of-event (cdr (assoc fs-id org-linenote--buffers))))
 
-    (when (string-match-p
-           (regexp-quote (file-name-nondirectory
-                          (buffer-file-name buffer-of-event)))
-           (file-name-base fpath))
+    (when (and (string-match-p
+                (regexp-quote (file-name-nondirectory
+                               (buffer-file-name buffer-of-event)))
+                (file-name-base fpath))
+               (not (org-linenote--is-backup-file fpath)))
       (with-current-buffer buffer-of-event
         (cond
          ((string= etype "deleted")
@@ -388,6 +450,10 @@ change the focus after the line highlight."
   "Remove all overlays in the current buffer."
   (mapc #'delete-overlay org-linenote--overlays))
 
+(defun org-linenote--remove-all-fringes ()
+  "Remove all fringes in the current buffer."
+  (mapc #'fringe-helper-remove org-linenote--fringes))
+
 (defun org-linenote--enable ()
   "A function to enable `org-linenote-mode'."
   (org-linenote--validate)
@@ -396,6 +462,7 @@ change the focus after the line highlight."
   (add-hook 'minibuffer-exit-hook #'org-linenote--minibuf-exit-hook)
   (add-hook 'kill-buffer-hook #'org-linenote--buffer-killed :local)
   (add-hook 'before-revert-hook #'org-linenote--remove-all-overlays :local)
+  (add-hook 'before-revert-hook #'org-linenote--remove-all-fringes :local)
 
   (let* ((watch-directory (expand-file-name (or (file-name-directory (org-linenote--get-relpath)) "")
                                             (org-linenote--get-note-rootdir)))
@@ -423,6 +490,7 @@ change the focus after the line highlight."
   (remove-hook 'before-revert-hook #'org-linenote--remove-all-overlays :local)
 
   (org-linenote--remove-all-overlays)
+  (org-linenote--remove-all-fringes)
   (org-linenote--auto-open-at-cursor 'false)
   (org-linenote--dealloc-fswatch))
 
