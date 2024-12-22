@@ -40,6 +40,8 @@ The package provides interactive functions as follows:
 - ~org-linenote-add-annotate~: to add a note for the current line.
 - ~org-linenote-edit-annotate~: an alias for ~org-linenote-add-annotate~. Edit the note corresponding to the current line.
 - ~org-linenote-remove-annotate~: to remove the note corresponding to the current line.
+- ~org-linenote-add-tags~: to add tags for the current line.
+- ~org-linenote-remove-tags~: to remove tags for the current line.
 - ~org-linenote-move-forward~: to move to the next note from the current line.
 - ~org-linenote-move-backward~: to move to the previous note from the current line.
 - ~org-linenote-find-root-dir~: to find the root directory of the project.
@@ -53,7 +55,6 @@ The following variables are customizable via ~M-x customize~.
 - ~org-linenote-use-eldoc~: to enable or disable eldoc support.
 - ~org-linenote-use-highlight~: to enable or disable line highlighting.
 - ~org-linenote-use-fringe~: to enable or disable fringe support.
-- ~org-linenote-fringe-side~: to configure the side of the fringes.
 
 *** Fringe
 
@@ -62,6 +63,7 @@ The following variables are customizable via ~M-x customize~.
 - ~org-linenote-fringe-bitmap~: to set the fringe bitmap style.
 
 *** Highlight
+
 - ~org-linenote-highlight-style~: to customize the style of highlighting.
 
 ** Single-line and multi-line notes
@@ -89,6 +91,11 @@ $ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
 #+END_SRC
 
 * Change-Log
+
+** 1.1.0
+- Added tags support. The tags will be shown in the minibuffer via ~org-linenote-browse~.
+  - ~org-linenote-add-tags~
+  - ~org-linenote-remove-tags~
 
 ** 1.0.1
 - Added support for fringes.
@@ -121,9 +128,6 @@ $ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
 
 ** 0.1.0
 - initial version
-
-* To-Do
-- tag support
 
 * Feedback
 
