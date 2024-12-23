@@ -5,8 +5,8 @@
 ;; Author: Jason Kim <sukbeom.kim@gmail.com>
 ;; Maintainer: Jason Kim <sukbeom.kim@gmail.com>
 ;; Created: February 18, 2024
-;; Modified: April 10, 2024
-;; Version: 1.0.1
+;; Modified: Dec 23, 2024
+;; Version: 1.1.0
 ;; Keywords: tools, note, org
 ;; Homepage: https://github.com/seokbeomKim/org-linenote
 ;; Package-Requires: ((emacs "29.1") (projectile "2.8.0") (vertico "1.7") (eldoc "1.11") (lsp-mode "9.0.0") (fringe-helper "1.0.1"))
