@@ -53,6 +53,7 @@ The package provides interactive functions as follows:
 The following variables are customizable via ~M-x customize~.
 
 - ~org-linenote-use-eldoc~: to enable or disable eldoc support.
+- ~org-linenote-use-relative~: use relative paths in ~org-linenote-browse~.
 - ~org-linenote-use-highlight~: to enable or disable line highlighting.
 - ~org-linenote-use-fringe~: to enable or disable fringe support.
 
@@ -91,6 +92,9 @@ $ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
 #+END_SRC
 
 * Change-Log
+
+** 1.1.1
+- Add an customizable option ~org-linenote-use-relative~.
 
 ** 1.1.0
 - Added tags support. The tags will be shown in the minibuffer via ~org-linenote-browse~.
