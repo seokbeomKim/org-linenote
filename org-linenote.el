@@ -64,6 +64,13 @@ vscode's linenote."
   :type 'string
   :group 'org-linenote)
 
+(defcustom org-linenote-use-relative t
+  "Use relative path for `org-linenote-browse'.
+If the value is t, the note's path will be shown in relative path.
+Otherwise, the absolute path will be used."
+  :type 'boolean
+  :group 'org-linenote)
+
 (defcustom org-linenote-use-eldoc t
   "Enable Eldoc to display the note.
 When enabled, the note appears before strings from LSP.  Set this to nil
@@ -575,6 +582,9 @@ disable note-follow.  if `TOGGLE' is \=true, enable note-follow."
 (defun org-linenote--add-tags-to-notelist (notes)
   "Add tags to the list of `NOTES' for the current buffer."
   (mapcar (lambda (note)
+            (when org-linenote-use-relative
+                (setq note (string-replace (expand-file-name ".linenote/"
+                                                        (projectile-project-root)) "" note)))
             (format "%-100s%s" note
                     (org-linenote--obtain-tag-string-by-key
                      (org-linenote--get-line-range-by-fname note)))) notes))
