@@ -583,8 +583,8 @@ disable note-follow.  if `TOGGLE' is \=true, enable note-follow."
   "Add tags to the list of `NOTES' for the current buffer."
   (mapcar (lambda (note)
             (when org-linenote-use-relative
-                (setq note (string-replace (expand-file-name ".linenote/"
-                                                        (projectile-project-root)) "" note)))
+              (setq note (string-replace (expand-file-name ".linenote/"
+                                                           (projectile-project-root)) "" note)))
             (format "%-100s%s" note
                     (org-linenote--obtain-tag-string-by-key
                      (org-linenote--get-line-range-by-fname note)))) notes))
@@ -606,6 +606,10 @@ Argument CHOICE user's selection."
                    (completing-read "Choose the note: "
                                     (org-linenote--add-tags-to-notelist (org-linenote--get-note-list)) nil t))))
       (org-linenote-mark-notes)
+      (when org-linenote-use-relative
+        (setq choice (expand-file-name choice
+                                       (expand-file-name ".linenote/" (projectile-project-root)))))
+
       (pop-to-buffer (find-file-noselect choice 'reusable-frames)))))
 
 (defun org-linenote--eldoc-show-buffer (&optional args)
