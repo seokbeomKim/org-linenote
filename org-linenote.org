@@ -6,7 +6,7 @@
 
 #+TEXINFO_FILENAME: org-linenote.info
 #+TEXINFO_DIR_CATEGORY: Emacs
-#+TEXINFO_DIR_TITLE: org-linenote
+#+TEXINFO_DIR_TITLE: org-linenote: (org-linenote)
 #+TEXINFO_PRINTED_TITLE: org-linenote
 
 * Org-linenote User Manual
