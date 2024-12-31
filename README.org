@@ -101,6 +101,9 @@ $ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
 
 * Change-Log
 
+** 1.1.3
+- Fix a wrong syntax in texinfo
+
 ** 1.1.2
 - Add a texinfo documentation
 - Update README.org
