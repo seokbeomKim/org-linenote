@@ -1,0 +1,87 @@
+#+TITLE: A note package inspired by VSCode's Linenote.
+#+LANGUAGE: en
+
+#+MACRO: version 1.1.2
+#+MACRO: updated last updated 31 Dec 2024
+
+#+TEXINFO_FILENAME: org-linenote.info
+#+TEXINFO_DIR_CATEGORY: Emacs
+#+TEXINFO_DIR_TITLE: org-linenote
+#+TEXINFO_PRINTED_TITLE: org-linenote
+
+* Org-linenote User Manual
+
+org-linenote is the package inspired by Visual Studio Code extension, Linenote (https://marketplace.visualstudio.com/items?itemName=tkrkt.linenote), providing functions to notes on source code.
+
+This manual is for org-linenote version {{{version}}}.
+
+* What is this package?
+
+org-linenote has several key features:
+
+- Creating a note and tags per line
+- Saving notes by preserving the directory structure
+- Compatibility with VS Code Linenote extension
+- No org properties required
+- Based on a Git repository
+
+org-linenote is useful when you need a detailed note on a specific line of code or document, unlike other note-taking packages that create a note per file. Additionally, the package does not require Org properties but only utilizes the line number from the filename.
+
+Also, the package provides compatibility with the VS Code Linenote extension. If you manage the notes within the markdown (.md) format, the same notes can also be utilized in Visual Studio Code.
+
+These features make org-linenote useful when you need ‘line-by-line’ notes to analyze the code and share notes with others. I use this package for analyzing Linux kernel and sharing insights with people (most of them are vscode users).
+  
+* Usage
+
+org-linenote provides key features.
+
+- A note per line (multi-line note is also possible)
+- Tags per line
+- Browsing notes by line number or tags
+- Fringe indicator
+- Eldoc integration
+
+Note that the minor mode of ~org-linenote-mode~ must be enabled in the current buffer.
+
+** Creating notes
+
+The command ~org-linenote-add-annodate~ and ~org-linenote-edit-annotate~ creates a note for the current line. If you select multiple lines, then the note for the selected lines will be created. The created note is located at ~$PROJECT/.linenote/$RELATIVE_PATH~ directory. For instance, if the relative path of the current buffer is ~arch/arm64/kernel/head.S~, then a note for the line #256 will be saved as ~.linenote/arch/arm64/kernel/head.S#L256.md~ or ~.linenote/arch/arm64/kernel/head.S#L256.org~.
+
+1. Open a file and move cursor to where you want to add a note.
+2. ~M-x org-linenote-add-annotate~.
+3. A new note will be created.
+
+** Removing notes
+
+To remove notes, move the cursor on the target line and do ~M-x org-linenote-remove-annotate~. You can also remove the note directly from the path ~$PROJECT/.linenote~.
+
+** Adding tags
+
+The command ~org-linenote-add-tags~ inserts tags for the current line. Note that it won't be allowed if the corresponding note does not exist for the current line. You can add multiple tags separated by ',', for example, ~tag_1,tag_2~. The tags will be shown when you are browsing notes with ~org-linenote-browse~.
+
+** Removing tags
+
+To remove tags on the current line, use ~org-linenote-remove-tags~.
+
+* Customization
+
+The following variables are customizable via M-x customize.
+
+- ~org-linenote-use-eldoc~: enable or disable eldoc support.
+- ~org-linenote-use-relative~: use relative paths in org-linenote-browse.
+- ~org-linenote-use-highlight~: enable or disable line highlighting.
+- ~org-linenote-use-fringe~: enable or disable fringe support.
+
+To customize fringe face, look into the following variables:
+
+- ~org-linenote-fringe-side~: choose between 'left-fringe or 'right-fringe.
+- ~org-linenote-fringe-face~: configure the face (i.e. color) of the fringes.
+- ~org-linenote-fringe-bitmap~: set the style for the fringe bitmap.
+
+For highlighting style, see the variable:
+
+- ~org-linenote-highlight-style~: customize the style of highlighting.
+
+* Credits
+
+- Thanks to Adam Porter (https://github.com/alphapapa) and Chris Rayner (https://github.com/riscy) for the feedback.
