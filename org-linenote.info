@@ -3,7 +3,7 @@ org-linenote.texi.
 
 INFO-DIR-SECTION Emacs
 START-INFO-DIR-ENTRY
-* org-linenote.         A note package inspired by VSCode's Linenote.
+* org-linenote: (org-linenote). A note package inspired by VSCode's Linenote.
 END-INFO-DIR-ENTRY
 
 
