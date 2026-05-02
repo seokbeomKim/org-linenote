@@ -5,11 +5,11 @@
 ;; Author: Jason Kim <sukbeom.kim@gmail.com>
 ;; Maintainer: Jason Kim <sukbeom.kim@gmail.com>
 ;; Created: February 18, 2024
-;; Modified: Dec 31, 2024
-;; Version: 1.1.3
+;; Modified: May 03, 2026
+;; Version: 1.1.4
 ;; Keywords: tools, note, org
 ;; Homepage: https://github.com/seokbeomKim/org-linenote
-;; Package-Requires: ((emacs "29.1") (projectile "2.8.0") (vertico "1.7") (eldoc "1.11") (lsp-mode "9.0.0") (fringe-helper "1.0.1"))
+;; Package-Requires: ((emacs "29.1") (vertico "1.7") (eldoc "1.11") (fringe-helper "1.0.1"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -49,11 +49,9 @@
 
 ;;; Code:
 
-(require 'projectile)
 (require 'vertico)
 (require 'subr-x)
 (require 'filenotify)
-(require 'lsp-mode)
 (require 'eldoc)
 (require 'fringe-helper)
 
@@ -211,10 +209,14 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
     (forward-line (1- current-line))))
 
 (defun org-linenote--get-relpath ()
-  "Get the relative path of the current file."
-  (if (projectile-project-root)
-      (string-remove-prefix (projectile-project-root) (buffer-file-name))
-    (file-name-nondirectory (buffer-file-name))))
+  "Get the relative path of the current file from the project root.
+If not in a project, return the file's nondirectory name.
+Return nil if the buffer is not visiting a file."
+  (when-let ((file (buffer-file-name)))
+    (if-let* ((pr (project-current))
+              (root (project-root pr)))
+        (file-relative-name file root)
+      (file-name-nondirectory (buffer-file-name)))))
 
 (defun org-linenote--validate ()
   "Validate the current working directory."
@@ -222,7 +224,7 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
   (unless org-linenote-mode
     (error "Please enable org-linenote mode"))
 
-  (if-let ((project-root (projectile-project-root)))
+  (if (project-current)
       (let* ((note-dir (org-linenote--get-note-rootdir))
              (note-path (expand-file-name
                          (or (file-name-directory (org-linenote--get-relpath)) "")
@@ -233,10 +235,12 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
     (error "The working directory is not a git repo")))
 
 (defun org-linenote--get-note-rootdir ()
-  "Get the root directory of the note based on projectile.
+  "Get the root directory of the note.
 If not available, then return empty string."
-  (if-let ((project-root (projectile-project-root)))
-      (let ((note-dir (expand-file-name ".linenote" project-root)))
+  (if-let* ((pr (project-current))
+            (root (project-root pr))
+            (note-dir (expand-file-name ".linenote" root)))
+      (progn
         (unless (file-exists-p note-dir)
           (make-directory note-dir t))
         note-dir)
@@ -512,7 +516,7 @@ change the focus after the line highlight."
   :global nil
   :lighter " Org-Linenote"
 
-  (unless (projectile-project-root)
+  (unless (project-current)
     (error "The working directory is not a git repo"))
 
   (if org-linenote-mode (org-linenote--enable) (org-linenote--disable)))
@@ -584,10 +588,10 @@ disable note-follow.  if `TOGGLE' is \=true, enable note-follow."
   (mapcar (lambda (note)
             (when org-linenote-use-relative
               (setq note (string-replace (expand-file-name ".linenote/"
-                                                           (projectile-project-root)) "" note)))
-            (format "%-100s%s" note
-                    (org-linenote--obtain-tag-string-by-key
-                     (org-linenote--get-line-range-by-fname note)))) notes))
+                                                           (project-root (project-current)) "" note)))
+              (format "%-100s%s" note
+                      (org-linenote--obtain-tag-string-by-key
+                       (org-linenote--get-line-range-by-fname note)))) notes)))
 
 (defun org-linenote--truncate-tags-or-spaces-from-string (str)
   "A function to truncate tags or spaces from `STR'."
@@ -608,9 +612,20 @@ Argument CHOICE user's selection."
       (org-linenote-mark-notes)
       (when org-linenote-use-relative
         (setq choice (expand-file-name choice
-                                       (expand-file-name ".linenote/" (projectile-project-root)))))
+                                       (expand-file-name ".linenote/" (project-root (project-current))))))
 
       (pop-to-buffer (find-file-noselect choice 'reusable-frames)))))
+
+(defun org-linenote--render-string (string language)
+  "Render `STRING' in the major mode corresponding to `LANGUAGE'."
+  (with-temp-buffer
+    (insert string)
+
+    (let ((mode (intern (concat language "-mode"))))
+      (when (fboundp mode)
+        (funcall mode)
+        (font-lock-ensure)))
+    (buffer-string)))
 
 (defun org-linenote--eldoc-show-buffer (&optional args)
   "Show the first line of a candidate note in the mini-buffer.
@@ -626,7 +641,7 @@ only note buffer, there is no usage of `ARGS' at all."
                (language '(("org" . "org")
                            ("md" . "markdown"))))
           (condition-case e
-              (lsp--render-string file-buffer (cdr (assoc file-ext language)))
+              (org-linenote--render-string file-buffer (cdr (assoc file-ext language)))
             (error (message "handle error: %s" e))))))))
 
 (defun org-linenote--load-tags (directory)
