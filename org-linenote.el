@@ -212,7 +212,7 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
   "Get the relative path of the current file from the project root.
 If not in a project, return the file's nondirectory name.
 Return nil if the buffer is not visiting a file."
-  (when-let ((file (buffer-file-name)))
+  (when-let* ((file (buffer-file-name)))
     (if-let* ((pr (project-current))
               (root (project-root pr)))
         (file-relative-name file root)
@@ -587,12 +587,26 @@ disable note-follow.  if `TOGGLE' is \=true, enable note-follow."
   (message "org-linenote note-follow %s"
            (if org-linenote--follow-cursor "enabled" "disabled")))
 
-(defun org-linenote--obtain-tag-string-by-key (key)
-  "Get a tag string by the `KEY' from the hash table."
-  (let ((result ""))
+(defun org-linenote--get-tagkey-by-fname (filename)
+  "Get the tag key from the note `FILENAME'."
+  (let* ((range (org-linenote--get-line-range-by-fname filename))
+         (min (car range))
+         (max (cdr range)))
+    (if max
+        (format "#L%S-L%S" min max)
+      (format "#L%S" min))))
+
+(defun org-linenote--obtain-tag-string-by-key (range)
+  "Get a tag string by the `RANGE' from the hash table."
+  (let* ((min (car range))
+         (max (cdr range))
+         (tagkey (if max
+                     (format "#L%S-L%S" min max)
+                   (format "#L%S" min)))
+         (result ""))
     (mapc (lambda (v)
             (setq result (concat result (format "#%s " v))))
-          (gethash (format "#L%S" (car key)) org-linenote--tags-hashmap))
+          (gethash tagkey org-linenote--tags-hashmap))
     result))
 
 (defun org-linenote--add-tags-to-notelist (notes)
@@ -680,42 +694,46 @@ only note buffer, there is no usage of `ARGS' at all."
   "Add tags corresponding to the current line."
   (interactive)
 
-  (if (null (org-linenote--check-note-exist))
-      (message "Note does not exist on the current line.")
-    (let ((reldir (expand-file-name
-                   (concat (file-name-directory (org-linenote--get-relpath)) "")
-                   (org-linenote--get-note-rootdir))))
-      (org-linenote--load-tags reldir)
-      (when (null org-linenote--tags-hashmap)
-        (setq-local org-linenote--tags-hashmap (make-hash-table :test 'equal)))
+  (let ((note-file (org-linenote--check-note-exist)))
+    (if (null note-file)
+        (message "Note does not exist on the current line.")
+      (let ((reldir (expand-file-name
+                     (concat (file-name-directory (org-linenote--get-relpath)) "")
+                     (org-linenote--get-note-rootdir))))
+        (org-linenote--load-tags reldir)
+        (when (null org-linenote--tags-hashmap)
+          (setq-local org-linenote--tags-hashmap (make-hash-table :test 'equal)))
 
-      (let* ((tagkey (org-linenote--get-linenum-string))
-             (prev-val (gethash tagkey org-linenote--tags-hashmap))
-             (tagstr (completing-read-multiple "Input tags (separated by , ): " prev-val)))
-        (remhash tagkey org-linenote--tags-hashmap)
-        (if prev-val
-            (puthash tagkey (append tagstr prev-val) org-linenote--tags-hashmap)
-          (puthash tagkey tagstr org-linenote--tags-hashmap))
-        (org-linenote--save-tags reldir)))))
+        (let* ((tagkey (org-linenote--get-tagkey-by-fname note-file))
+               (prev-val (gethash tagkey org-linenote--tags-hashmap))
+               (tagstr (completing-read-multiple "Input tags (separated by , ): " prev-val)))
+          (remhash tagkey org-linenote--tags-hashmap)
+          (if prev-val
+              (puthash tagkey (delete-dups (append tagstr prev-val)) org-linenote--tags-hashmap)
+            (puthash tagkey tagstr org-linenote--tags-hashmap))
+          (org-linenote--save-tags reldir))))))
 
 (defun org-linenote-remove-tags ()
   "Remove tags corresponding to the current line."
   (interactive)
 
-  (let ((reldir (expand-file-name (concat (file-name-directory (org-linenote--get-relpath)) "")
-                                  (org-linenote--get-note-rootdir))))
+  (let ((note-file (org-linenote--check-note-exist)))
+    (if (null note-file)
+        (message "Note does not exist on the current line.")
+      (let ((reldir (expand-file-name (concat (file-name-directory (org-linenote--get-relpath)) "")
+                                      (org-linenote--get-note-rootdir))))
 
-    (org-linenote--load-tags reldir)
-    (let* ((tagkey (org-linenote--get-linenum-string))
-           (prev-val (gethash tagkey org-linenote--tags-hashmap)))
+        (org-linenote--load-tags reldir)
+        (let* ((tagkey (org-linenote--get-tagkey-by-fname note-file))
+               (prev-val (gethash tagkey org-linenote--tags-hashmap)))
 
-      (if (null prev-val)
-          (message "No tags to remove on the current line.")
-        (let* ((tagstr (completing-read-multiple "Input tags to remove (separated by , ): " prev-val)))
-          (mapc (lambda (v) (setq prev-val (delete v prev-val))) tagstr)
-          (remhash tagkey org-linenote--tags-hashmap)
-          (puthash tagkey prev-val org-linenote--tags-hashmap)
-          (org-linenote--save-tags reldir))))))
+          (if (null prev-val)
+              (message "No tags to remove on the current line.")
+            (let* ((tagstr (completing-read-multiple "Input tags to remove (separated by , ): " prev-val)))
+              (mapc (lambda (v) (setq prev-val (delete v prev-val))) tagstr)
+              (remhash tagkey org-linenote--tags-hashmap)
+              (puthash tagkey prev-val org-linenote--tags-hashmap)
+              (org-linenote--save-tags reldir))))))))
 
 (provide 'org-linenote)
 ;;; org-linenote.el ends here
