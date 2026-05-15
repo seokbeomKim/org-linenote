@@ -167,8 +167,9 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
     (goto-char (point-min))
     (forward-line min-line)
 
-    (mapc (lambda (v) (delete-overlay v))
-          (overlays-in (line-beginning-position) (line-end-position)))
+    (let ((beg (line-beginning-position))
+          (end (save-excursion (forward-line diff-line) (line-end-position))))
+      (org-linenote--remove-at beg end))
 
     (when org-linenote-use-fringe
       (fringe-helper-define 'org-linenote--fringe-bitmap '(center)
@@ -185,7 +186,6 @@ if `UNDO' is t, then unhighlight regions related to `FILENAME'."
       (beginning-of-line)
       (set-mark (line-beginning-position))
       (forward-line diff-line)
-      (org-linenote--remove-overlays-at (region-beginning))
       (if (null undo)
           (let ((ov (make-overlay (region-beginning) (- (region-end) 1))))
             (overlay-put ov 'face 'org-linenote-highlight-style)
@@ -413,13 +413,19 @@ change the focus after the line highlight."
   "Check `OV' instance is actually overlayed by this package."
   (member ov org-linenote--overlays))
 
+(defun org-linenote--remove-at (beg end)
+  "Remove org-linenote overlays and fringes in the range [BEG, END]."
+  (dolist (ov (overlays-in beg end))
+    (when (member ov org-linenote--overlays)
+      (delete-overlay ov)
+      (setq org-linenote--overlays (delete ov org-linenote--overlays)))
+    (when (member ov org-linenote--fringes)
+      (fringe-helper-remove ov)
+      (setq org-linenote--fringes (delete ov org-linenote--fringes)))))
+
 (defun org-linenote--remove-overlays-at (pos)
   "Remove overlays at `POS' by checking the `org-linenote--overlays'."
-  (mapc (lambda (ov)
-          (if (org-linenote--overlayed-by ov)
-              (progn
-                (delete-overlay ov)
-                (delete ov org-linenote--overlays)))) (overlays-at pos)))
+  (org-linenote--remove-at pos pos))
 
 (defun org-linenote--minibuf-setup-hook ()
   "A function added to minibuf-setup-hook used for org-linenote."
@@ -468,11 +474,13 @@ change the focus after the line highlight."
 
 (defun org-linenote--remove-all-overlays ()
   "Remove all overlays in the current buffer."
-  (mapc #'delete-overlay org-linenote--overlays))
+  (mapc #'delete-overlay org-linenote--overlays)
+  (setq org-linenote--overlays nil))
 
 (defun org-linenote--remove-all-fringes ()
   "Remove all fringes in the current buffer."
-  (mapc #'fringe-helper-remove org-linenote--fringes))
+  (mapc #'fringe-helper-remove org-linenote--fringes)
+  (setq org-linenote--fringes nil))
 
 (defun org-linenote--enable ()
   "A function to enable `org-linenote-mode'."
