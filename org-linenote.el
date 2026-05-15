@@ -397,13 +397,17 @@ change the focus after the line highlight."
 
 (defun org-linenote--post-command-hook ()
   "Post-command-hook implementation."
-  (when org-linenote--in-browse
-    (let ((focused-item (nth (symbol-value 'vertico--index) (symbol-value 'vertico--candidates))))
-      (when (length> focused-item 0)
-        (select-window org-linenote--prev-window)
-        (org-linenote--highlight focused-item)
-        (if (active-minibuffer-window)
-            (select-window (active-minibuffer-window)))))))
+  (when (and org-linenote--in-browse
+             (boundp 'vertico--index)
+             (boundp 'vertico--candidates))
+    (let ((focused-item (nth vertico--index vertico--candidates)))
+      (when (and focused-item (length> focused-item 0))
+        (when (window-live-p org-linenote--prev-window)
+          (select-window org-linenote--prev-window)
+          (org-linenote--highlight focused-item)
+          (let ((minibuf-win (active-minibuffer-window)))
+            (when (window-live-p minibuf-win)
+              (select-window minibuf-win))))))))
 
 (defun org-linenote--overlayed-by (ov)
   "Check `OV' instance is actually overlayed by this package."
@@ -586,12 +590,14 @@ disable note-follow.  if `TOGGLE' is \=true, enable note-follow."
 (defun org-linenote--add-tags-to-notelist (notes)
   "Add tags to the list of `NOTES' for the current buffer."
   (mapcar (lambda (note)
-            (when org-linenote-use-relative
-              (setq note (string-replace (expand-file-name ".linenote/"
-                                                           (project-root (project-current)) "" note)))
-              (format "%-100s%s" note
+            (let ((display-note note))
+              (when org-linenote-use-relative
+                (setq display-note (string-replace (expand-file-name ".linenote/"
+                                                                    (project-root (project-current))) "" note)))
+              (format "%-100s%s" display-note
                       (org-linenote--obtain-tag-string-by-key
-                       (org-linenote--get-line-range-by-fname note)))) notes)))
+                       (org-linenote--get-line-range-by-fname note)))))
+          notes))
 
 (defun org-linenote--truncate-tags-or-spaces-from-string (str)
   "A function to truncate tags or spaces from `STR'."
