@@ -69,5 +69,26 @@
       (dolist (x (org-linenote--get-note-list))
         (should (not (null (member (file-name-base x) should-list))))))))
 
+(ert-deftest org-linenote-test-overlay-isolation ()
+  "Test that org-linenote only deletes its own overlays."
+  (with-temp-buffer
+    (insert "Line 1\nLine 2\n")
+    (goto-char (point-min))
+    ;; 1. Create a foreign overlay
+    (let ((foreign-ov (make-overlay (line-beginning-position) (line-end-position))))
+      (overlay-put foreign-ov 'owner 'someone-else)
+      
+      ;; 2. Simulate org-linenote adding an overlay
+      (let ((our-ov (make-overlay (line-beginning-position) (line-end-position))))
+        (push our-ov org-linenote--overlays)
+        
+        ;; 3. Run removal logic for that position
+        (org-linenote--remove-overlays-at (point))
+        
+        ;; 4. Verify our overlay is gone but the foreign one remains
+        (should (null (overlay-buffer our-ov)))
+        (should (not (null (overlay-buffer foreign-ov))))
+        (should (not (member our-ov org-linenote--overlays))))))
+
 (provide 'org-linenote-test)
 ;;; org-linenote-test.el ends here

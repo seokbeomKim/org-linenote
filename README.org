@@ -101,6 +101,14 @@ $ ln -sv $PROJECT/.linenote $PROJECT/.vscode/linenote
 
 * Change-Log
 
+** 1.1.5
+- Fix `mapcar` and `window-live-p` errors in `org-linenote-browse`
+- Fix a bug where other overlays were removed when deleting a note
+- Fix a bug when adding tags within multiline notes
+
+** 1.1.4
+- Remove unnecessary dependencies
+
 ** 1.1.3
 - Fix a wrong syntax in texinfo
 
